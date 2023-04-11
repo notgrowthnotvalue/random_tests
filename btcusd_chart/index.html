@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <script>
+        const apiKey = '<your_api_key>';
+        const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=2000&api_key=${apiKey}`;
+
+        // Fetch the data via API
+        d3.json(url).then(data => {
+            // Parse the date/time data
+            const parseTime = d3.timeParse('%Y-%m-%d');
+
+            // Convert UNIX timestamp to date string in '%Y-%m-%d' format
+            data.Data.TimeFrom = parseTime(new Date(data.Data.TimeFrom * 1000).toISOString().slice(0, 10));
+            data.Data.TimeTo = parseTime(new Date(data.Data.TimeTo * 1000).toISOString().slice(0, 10));
+            data.Data.Data.forEach(d => {
+                d.time = parseTime(new Date(d.time * 1000).toISOString().slice(0, 10));
+                d.close = +d.close;
+                d.volumefrom = +d.volumefrom;
+            });
+
+            console.log(data)
+            console.log(data.Data.Data.length)
+
+            // Define the dimensions and margins of the main chart
+            const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+            const width = 600 - margin.left - margin.right; // 600-50-50=450
+            const height = 400 - margin.top - margin.bottom; // 400-50-50=300
+
+            // Define the dimensions and margins of the volume chart
+            const marginVolume = { top: 25, right: 50, bottom: 25, left: 50 };
+            const widthVolume = 600 - marginVolume.left - marginVolume.right; // 600-50-50=500
+            const heightVolume = 150 - marginVolume.top - marginVolume.bottom; // 150-25-25=100
+
+            // Create scales for x and y axes
+            const x = d3.scaleTime()
+                .domain(d3.extent(data.Data.Data, d => d.time))
+                .range([0, width]);
+            const y = d3.scaleLinear()
+                .domain([d3.min(data.Data.Data, d => d.close), d3.max(data.Data.Data, d => d.close)])
+                .range([height, 0]);
+
+            // Create x and y axis
+            const xAxis = d3.axisBottom(x);
+            const yAxisLeft = d3.axisLeft(y);
+            const yAxisRight = d3.axisRight(y);
+
+            // Define the line functions
+            const linePrice = d3.line()
+                .x(d => x(d.time))
+                .y(d => y(d.close));
+
+            // Create SVG element for the main chart
+            const svg = d3.select('body')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+            // Append x and y axis to the main chart
+            svg.append('g')
+                .attr('transform', `translate(0, ${height})`)
+                .call(xAxis);
+            svg.append('g')
+                .attr('class', 'axis')
+                .call(yAxisLeft);
+            svg.append('g')
+                .attr('class', 'axis')
+                .attr('transform', `translate(${width}, 0)`)
+                .call(yAxisRight);
+
+            // Append path element for the price line to the main chart
+            svg.append('path')
+                .datum(data.Data.Data)
+                .attr('fill', 'none')
+                .attr('stroke', 'steelblue')
+                .attr('stroke-width', 2)
+                .attr('d', linePrice);
+
+            // Append a title to the volume chart
+            svg.append('text')
+                .attr('x', widthVolume / 2)
+                .attr('y', -margin.top / 2)
+                .attr('text-anchor', 'middle')
+                .text('BTC/USD');
+
+            // Create scales for the volume x-axis
+            const xVolume = d3.scaleTime()
+                .domain(d3.extent(data.Data.Data, d => d.time))
+                .range([0, widthVolume]);
+
+            const barWidth = widthVolume / data.Data.Data.length; // 500/4=125
+
+            // Create a scale for the volume axis
+            const yVolume = d3.scaleLinear()
+                .domain([0, d3.max(data.Data.Data, d => d.volumefrom)])
+                .range([heightVolume, 0]);
+
+            // Create the volume x-axis
+            const xAxisVolume = d3.axisBottom(xVolume); //ticks(3);
+
+            // Create the volume y-axis
+            const yAxisVolume = d3.axisLeft(yVolume).ticks(3);
+
+            // Create SVG element for the volume chart
+            const svgVolume = d3.select('body')
+                .append('svg')
+                .attr('width', widthVolume + marginVolume.left + marginVolume.right)
+                .attr('height', heightVolume + marginVolume.top + marginVolume.bottom)
+                .append('g')
+                .attr('transform', `translate(${marginVolume.left}, ${marginVolume.top})`);
+
+
+
+            // Append the volume y-axis to the chart
+            svgVolume.append('g')
+                .attr('class', 'axis y')
+                .call(yAxisVolume);
+
+            // Append the volume x-axis to the chart
+            svgVolume.append('g')
+                .attr('class', 'axis x')
+                .attr('transform', `translate(0, ${heightVolume})`)
+                .call(xAxisVolume);
+
+            // Create rectangle elements for the volume bars
+            svgVolume.selectAll('rect')
+                .data(data.Data.Data)
+                .enter()
+                .append('rect')
+                .attr('x', d => x(d.time) - barWidth / 2)
+                .attr('y', d => yVolume(d.volumefrom))
+                .attr('width', barWidth)
+                .attr('height', d => heightVolume - yVolume(d.volumefrom))
+                .attr('fill', 'steelblue');
+
+            // Append a title to the volume chart
+            svgVolume.append('text')
+                .attr('x', widthVolume / 2)
+                .attr('y', -marginVolume.top / 2)
+                .attr('text-anchor', 'middle')
+                .text('Volume');
+
+        }).catch(error => {
+            console.error(error)
+        });
+
+    </script>
+</body>
+
+</html>

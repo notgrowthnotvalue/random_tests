@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Simple D3 Bar Chart</title>
+    <script src="./node_modules/d3/dist/d3.min.js"></script>
+    <style>
+        /* Add some basic styling to the chart */
+        .bar {
+            fill: steelblue;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Create a div to hold the chart -->
+    <div id="chart"></div>
+
+    <!-- Add a script tag to create the chart -->
+    <script>
+        // Define the data for the chart
+        const data = [10, 20, 30, 40, 50];
+
+        // Set the dimensions of the chart
+        const width = 500;
+        const height = 300;
+
+        // Create the chart SVG element
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Create the chart bars
+        svg.selectAll("rect")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", (d, i) => i * (width / data.length))
+            .attr("y", (d) => height - d * 5)
+            .attr("width", width / data.length - 1)
+            .attr("height", (d) => d * 5)
+
+        svg.selectAll("text")
+            .data(data)
+            .join("text")
+            .attr("class", "label")
+            .text((d) => d)
+            .attr("x", (d, i) => i * (width / data.length) + (width / data.length - 1) / 2)
+            .attr("y", (d) => height - d * 5 - 5);
+    </script>
+</body>
+
+</html>
