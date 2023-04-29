@@ -118,4 +118,72 @@ const findPersonById = (personId, done) => {
     })
 };
 
+const findEditThenSave = (personId, done) => {
+    const foodToAdd = "hamburger";
 
+    // .findById() method to find a person by _id with the parameter personId 
+    Person.findById(personId, (err, person) => {
+        if (err) return console.log(err);
+
+        // Array.push() method to add "hamburger" to the list of the person's favoriteFoods
+        person.favoriteFoods.push(foodToAdd);
+
+        // and inside the find callback - save() the updated Person.
+        person.save((err, updatedPerson) => {
+            if (err) return console.log(err);
+            done(null, updatedPerson)
+        })
+    })
+};
+
+const findAndUpdate = (personName, done) => {
+    const ageToSet = 20;
+
+    Person.findOneAndUpdate(
+        {
+            name: personName
+        },
+        {
+            age: ageToSet
+        },
+        {
+            new: true,
+        },
+        (err, updatedDoc) => {
+            if (err) return console.log(err);
+            done(null, updatedDoc);
+        })
+};
+
+const removeById = (personId, done) => {
+    Person.findByIdAndRemove(
+        personId,
+        (err, removedDoc) => {
+            if (err) return console.log(err);
+            done(null, removedDoc);
+        }
+    );
+};
+
+const removeManyPeople = (done) => {
+    const nameToRemove = "Mary";
+
+    Person.remove({ name: nameToRemove }, (err, response) => {
+        if (err) return console.log(err);
+        done(null, response);
+    })
+};
+
+
+const queryChain = (done) => {
+    const foodToSearch = "burrito";
+
+    Person.find({ favoriteFoods: foodToSearch })
+        .sort({ name: 1 })
+        .limit(2)
+        .select({ age: 0 })
+        .exec(function (err, people) {
+            if (err) return console.log(error);
+            done(null, people);
+        })
+};
